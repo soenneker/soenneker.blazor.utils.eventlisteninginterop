@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Soenneker.Fixtures.Unit;
 using Soenneker.Utils.Test;
+using Soenneker.Blazor.MockJsRuntime.Registrars;
 
 namespace Soenneker.Blazor.Utils.EventListeningInterop.Tests;
 
@@ -11,6 +12,8 @@ public class Fixture : UnitFixture
     public override System.Threading.Tasks.ValueTask InitializeAsync()
     {
         SetupIoC(Services);
+
+        Services.AddMockJsRuntimeAsScoped();
 
         return base.InitializeAsync();
     }
