@@ -1,19 +1,17 @@
 using Soenneker.Blazor.Utils.EventListeningInterop.Abstract;
-using Soenneker.Tests.FixturedUnit;
-using Xunit;
-
+using Soenneker.Tests.HostedUnit;
 
 namespace Soenneker.Blazor.Utils.EventListeningInterop.Tests;
 
-[Collection("Collection")]
-public class EventListeningInteropTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class EventListeningInteropTests : HostedUnitTest
 {
-    public EventListeningInteropTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public EventListeningInteropTests(Host host) : base(host)
     {
 
     }
 
-    [Fact]
+    [Test]
     public void Default()
     {
 
