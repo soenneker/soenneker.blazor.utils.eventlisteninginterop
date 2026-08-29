@@ -5,7 +5,7 @@ using Soenneker.Blazor.Utils.EventListeningInterop.Abstract;
 
 namespace Soenneker.Blazor.Utils.EventListeningInterop;
 
-///<inheritdoc cref="IEventListeningInterop"/>
+/// <inheritdoc cref="IEventListeningInterop"/>
 public abstract class EventListeningInterop : IEventListeningInterop
 {
     protected IJSRuntime JsRuntime { get; }
