@@ -5,35 +5,70 @@
 
 # Soenneker.Blazor.Utils.EventListeningInterop
 
-A base type for use with Blazor interops that need to listen for events.
+A small base contract for Blazor interop classes that delegate DOM event-listener registration to JavaScript.
 
-## Install
+This is infrastructure for library authors, not a standalone event-listener service. It standardizes the call shape used by higher-level packages such as `Soenneker.Blazor.Utils.InteropEventListener`.
+
+## Installation
 
 ```bash
 dotnet add package Soenneker.Blazor.Utils.EventListeningInterop
 ```
 
-## Quick start
+No DI registrar is included. Derive an interop class from `EventListeningInterop`, or implement `IEventListeningInterop` when listener registration happens through an imported JavaScript module.
+
+## Derive from the base class
+
+The base implementation calls a JavaScript function through `IJSRuntime` with these arguments, in order: element ID, event name, and callback object.
 
 ```csharp
-using Soenneker.Blazor.Utils.EventListeningInterop.Abstract;
+using Microsoft.JSInterop;
+using Soenneker.Blazor.Utils.EventListeningInterop;
 
-IEventListeningInterop eventListeningInterop = /* resolve from DI */;
-await eventListeningInterop.AddEventListener("value", "value", "value", /* supply dotNetCallback */ default!, default);
+public sealed class WidgetInterop : EventListeningInterop
+{
+    public WidgetInterop(IJSRuntime jsRuntime) : base(jsRuntime)
+    {
+    }
+
+    public ValueTask Listen(
+        string elementId,
+        string eventName,
+        object callback,
+        CancellationToken cancellationToken = default)
+    {
+        return AddEventListener(
+            "widgetInterop.addEventListener",
+            elementId,
+            eventName,
+            callback,
+            cancellationToken);
+    }
+}
 ```
 
-Adds an event listener to the specified HTML element with the given ID.
+The corresponding JavaScript function must accept that shape:
 
-## What you get
+```javascript
+window.widgetInterop = {
+    addEventListener(elementId, eventName, callback) {
+        const element = document.getElementById(elementId);
+        if (!element)
+            throw new Error(`Element '${elementId}' was not found.`);
 
-- `IEventListeningInterop` — A base type for use with Blazor interops that need to listen for events.
+        element.addEventListener(eventName, event => {
+            callback.invokeMethodAsync("Invoke", event.type);
+        });
+    }
+};
+```
 
-## API at a glance
+If your JavaScript lives in an imported ES module, implement `IEventListeningInterop` and invoke the function on the module reference instead of using the base class, because the base class resolves a global `IJSRuntime` identifier.
 
-| API | What it does | Result / important behavior |
-| --- | --- | --- |
-| `IEventListeningInterop.AddEventListener(functionName, elementId, eventName, dotNetCallback, cancellationToken)` | Adds an event listener to the specified HTML element with the given ID. | A task that completes when the event listener addition is complete. |
+## Listener and callback lifetime
 
-## Practical notes
+`AddEventListener` only waits for the JavaScript registration call. Cancelling its token can cancel that pending interop call; it does not remove a listener that JavaScript already attached.
 
-- Cancellation stops pending work; it does not undo work that has already completed.
+The consuming interop must define a matching JavaScript removal operation and call it during component or service disposal. It must also keep any `DotNetObjectReference<T>` alive for as long as JavaScript can invoke it, then dispose the reference only after the listener can no longer fire. Adding the same listener more than once is not deduplicated here.
+
+Treat `functionName` as a trusted constant owned by the library. Do not accept it from URL, markup, or other untrusted input. Callback payloads originate in the browser and should be validated before they affect privileged application behavior.

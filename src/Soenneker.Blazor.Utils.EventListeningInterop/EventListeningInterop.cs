@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.JSInterop;
@@ -12,11 +13,16 @@ public abstract class EventListeningInterop : IEventListeningInterop
 
     protected EventListeningInterop(IJSRuntime jsRuntime)
     {
-        JsRuntime = jsRuntime;
+        JsRuntime = jsRuntime ?? throw new ArgumentNullException(nameof(jsRuntime));
     }
 
     public ValueTask AddEventListener(string functionName, string elementId, string eventName, object dotNetCallback, CancellationToken cancellationToken = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(functionName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventName);
+        ArgumentNullException.ThrowIfNull(dotNetCallback);
+
         return JsRuntime.InvokeVoidAsync(functionName, cancellationToken, elementId, eventName, dotNetCallback);
     }
 }
